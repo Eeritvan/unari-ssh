@@ -104,7 +104,16 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		Foreground(lipgloss.Color("#FAFAFA")).
 		Background(lipgloss.Color("#7D56F4")).
 		Padding(1, 2).
-		Margin(1).
+		Margin(1, 0).
+		Width(16).
+		Align(lipgloss.Center)
+	sidebarSelectedItemStyle := renderer.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#000000")).
+		Background(lipgloss.Color("#FFFF00")).
+		Padding(1, 2).
+		Margin(1, 0).
+		Width(16).
 		Align(lipgloss.Center)
 	navStyle := renderer.NewStyle().
 		Foreground(lipgloss.Color("12")).
@@ -117,37 +126,39 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	}
 
 	m := model{
-		term:             pty.Term,
-		profile:          renderer.ColorProfile().Name(),
-		width:            pty.Window.Width,
-		height:           pty.Window.Height,
-		bg:               bg,
-		txtStyle:         txtStyle,
-		quitStyle:        quitStyle,
-		sidebarStyle:     sidebarStyle,
-		sidebarItemStyle: sidebarItemStyle,
-		navStyle:         navStyle,
-		contentStyle:     contentStyle,
-		currentView:      homeView,
-		data:             unicafeData,
+		term:                     pty.Term,
+		profile:                  renderer.ColorProfile().Name(),
+		width:                    pty.Window.Width,
+		height:                   pty.Window.Height,
+		bg:                       bg,
+		txtStyle:                 txtStyle,
+		quitStyle:                quitStyle,
+		sidebarStyle:             sidebarStyle,
+		sidebarItemStyle:         sidebarItemStyle,
+		sidebarSelectedItemStyle: sidebarSelectedItemStyle,
+		navStyle:                 navStyle,
+		contentStyle:             contentStyle,
+		currentView:              homeView,
+		data:                     unicafeData,
 	}
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
 
 type model struct {
-	term             string
-	profile          string
-	width            int
-	height           int
-	bg               string
-	currentView      int
-	txtStyle         lipgloss.Style
-	quitStyle        lipgloss.Style
-	navStyle         lipgloss.Style
-	sidebarStyle     lipgloss.Style
-	sidebarItemStyle lipgloss.Style
-	contentStyle     lipgloss.Style
-	data             []fetch.Unicafe
+	term                     string
+	profile                  string
+	width                    int
+	height                   int
+	bg                       string
+	currentView              int
+	txtStyle                 lipgloss.Style
+	quitStyle                lipgloss.Style
+	navStyle                 lipgloss.Style
+	sidebarStyle             lipgloss.Style
+	sidebarItemStyle         lipgloss.Style
+	sidebarSelectedItemStyle lipgloss.Style
+	contentStyle             lipgloss.Style
+	data                     []fetch.Unicafe
 }
 
 func (m model) Init() tea.Cmd {
@@ -237,11 +248,17 @@ func (m model) renderBottomNav() string {
 func (m model) renderSidebar() string {
 	var campusList []string
 
-	for _, campus := range CAMPUSES {
-		sideBarItem := m.sidebarItemStyle.Render(campus)
+	for i, campus := range CAMPUSES {
+		var style lipgloss.Style
+		if i == m.currentView {
+			style = m.sidebarSelectedItemStyle
+		} else {
+			style = m.sidebarItemStyle
+		}
+		sideBarItem := style.Render(campus)
 		campusList = append(campusList, sideBarItem)
 	}
 
-	sideBar := lipgloss.JoinVertical(lipgloss.Left, campusList...)
+	sideBar := lipgloss.JoinVertical(lipgloss.Center, campusList...)
 	return sideBar
 }
