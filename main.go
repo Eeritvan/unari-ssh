@@ -1,8 +1,5 @@
 package main
 
-// An example Bubble Tea server. This will put an ssh session into alt screen
-// and continually print up to date terminal information.
-
 import (
 	"context"
 	"errors"
@@ -10,10 +7,9 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"slices"
 	"syscall"
 	"time"
-
-	fetch "github.com/eeritvan/unari-ssh/pkg/fetch"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -23,17 +19,25 @@ import (
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/logging"
+	"github.com/eeritvan/unari-ssh/pkg/fetch"
 	"github.com/joho/godotenv"
 )
 
-var data []fetch.Unicafe
+var CAMPUSES = [...]string{"Keskusta", "Kumpula", "Meilahti", "Viikki"}
+var unicafeData []fetch.Unicafe
 
-type viewType int
+var CAMPUS_RESTAURANTS = map[string][]string{
+	"Keskusta": {"Myöhä Café & Bar", "Kaivopiha", "Kaisa-talo", "Soc&Kom", "Rotunda", "Porthania Opettajien ravintola", "Porthania", "Topelias", "Olivia", "Metsätalo"},
+	"Kumpula":  {"Physicum", "Exactum", "Chemicum", "Chemicum Opettajien ravintola"},
+	"Meilahti": {"Terkko", "Meilahti"},
+	"Viikki":   {"Tähkä", "Biokeskus 2", "Infokeskus alakerta", "Viikuna", "Infokeskus", "Biokeskus"},
+}
 
 const (
-	homeView viewType = iota
+	homeView int = iota
 	restaurantView
 	terminalInfoView
+	testingView
 	totalViews
 )
 
@@ -45,6 +49,11 @@ func main() {
 
 	host := os.Getenv("HOST")
 	port := os.Getenv("PORT")
+
+	unicafeData, err = fetch.GetUnicafe()
+	if err != nil {
+		log.Error("Failed to fetch Unicafe data", "error", err)
+	}
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
@@ -84,52 +93,61 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	renderer := bubbletea.MakeRenderer(s)
 	txtStyle := renderer.NewStyle().Foreground(lipgloss.Color("10"))
 	quitStyle := renderer.NewStyle().Foreground(lipgloss.Color("8"))
-	titleStyle := renderer.NewStyle().
+	sidebarStyle := renderer.NewStyle().
+		Foreground(lipgloss.Color("#04B575")).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderRight(true).
+		Padding(1, 2).
+		Width(20) // TODO: dynamic width
+	sidebarItemStyle := renderer.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#FAFAFA")).
 		Background(lipgloss.Color("#7D56F4")).
 		Padding(1, 2).
-		BorderStyle(lipgloss.NormalBorder())
+		Margin(1).
+		Align(lipgloss.Center)
 	navStyle := renderer.NewStyle().
 		Foreground(lipgloss.Color("12")).
 		Italic(true)
-	sidebarStyle := renderer.NewStyle().
-		Foreground(lipgloss.Color("#04B575")).
-		Align(lipgloss.Left)
-
+	contentStyle := renderer.NewStyle().
+		Padding(1, 2)
 	bg := "light"
 	if renderer.HasDarkBackground() {
 		bg = "dark"
 	}
 
 	m := model{
-		term:         pty.Term,
-		profile:      renderer.ColorProfile().Name(),
-		width:        pty.Window.Width,
-		height:       pty.Window.Height,
-		bg:           bg,
-		txtStyle:     txtStyle,
-		quitStyle:    quitStyle,
-		titleStyle:   titleStyle,
-		navStyle:     navStyle,
-		sidebarStyle: sidebarStyle,
-		currentView:  homeView,
+		term:             pty.Term,
+		profile:          renderer.ColorProfile().Name(),
+		width:            pty.Window.Width,
+		height:           pty.Window.Height,
+		bg:               bg,
+		txtStyle:         txtStyle,
+		quitStyle:        quitStyle,
+		sidebarStyle:     sidebarStyle,
+		sidebarItemStyle: sidebarItemStyle,
+		navStyle:         navStyle,
+		contentStyle:     contentStyle,
+		currentView:      homeView,
+		data:             unicafeData,
 	}
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
 
 type model struct {
-	term         string
-	profile      string
-	width        int
-	height       int
-	bg           string
-	txtStyle     lipgloss.Style
-	quitStyle    lipgloss.Style
-	titleStyle   lipgloss.Style
-	navStyle     lipgloss.Style
-	sidebarStyle lipgloss.Style
-	currentView  viewType
+	term             string
+	profile          string
+	width            int
+	height           int
+	bg               string
+	currentView      int
+	txtStyle         lipgloss.Style
+	quitStyle        lipgloss.Style
+	navStyle         lipgloss.Style
+	sidebarStyle     lipgloss.Style
+	sidebarItemStyle lipgloss.Style
+	contentStyle     lipgloss.Style
+	data             []fetch.Unicafe
 }
 
 func (m model) Init() tea.Cmd {
@@ -165,57 +183,65 @@ func (m model) View() string {
 
 	switch m.currentView {
 	case homeView:
-		content = m.renderHomeView()
+		content = m.renderRestaurant(m.currentView)
 	case restaurantView:
-		content = m.renderRestaurantView()
+		content = m.renderRestaurant(m.currentView)
 	case terminalInfoView:
-		content = m.renderTerminalInfoView()
+		content = m.renderRestaurant(m.currentView)
+	case testingView:
+		content = m.renderRestaurant(m.currentView)
 	}
 
-	nav := m.navStyle.Render(fmt.Sprintf("\n\nView %d/%d",
-		int(m.currentView)+1, int(totalViews)))
-	quit := m.quitStyle.Render("\nPress 'q' to quit")
+	sideBar := m.renderSidebar()
 
-	return content + nav + quit
+	mainHeight := m.height - 3
+
+	sidebarStyleWithHeight := m.sidebarStyle.Height(mainHeight)
+	contentStyleWithHeight := m.contentStyle.
+		Width(m.width - 24).
+		Height(mainHeight)
+
+	sidebarContent := sidebarStyleWithHeight.Render(sideBar)
+	mainContent := contentStyleWithHeight.Render(content)
+
+	mainView := lipgloss.JoinHorizontal(lipgloss.Top, sidebarContent, mainContent)
+
+	bottomNav := m.renderBottomNav()
+
+	return lipgloss.JoinVertical(lipgloss.Left, mainView, bottomNav)
 }
 
-func (m model) renderHomeView() string {
-	title := m.titleStyle.Render("view 1")
-	content := m.txtStyle.Render("yo yo yo.")
-	return title + content
-}
-
-func (m model) renderRestaurantView() string {
-	title := m.titleStyle.Render("view 2")
-
-	if len(data) == 0 {
-		var err error
-		restaurants, err := fetch.GetUnicafe()
-		if err != nil {
-			return title + "\n" + m.txtStyle.Render(fmt.Sprintf("\nError loading restaurants: %v", err))
-		}
-		data = restaurants
-	}
+func (m model) renderRestaurant(idx int) string {
+	campus := CAMPUSES[idx]
+	campusRestaurants := CAMPUS_RESTAURANTS[campus]
 
 	var restaurantList string
-	for index, restaurant := range data {
-		restaurantList += fmt.Sprintf("\n  %d. %s", index+1, restaurant.Title)
+	for _, restaurant := range m.data {
+		name := restaurant.Title
+		if slices.Contains(campusRestaurants, name) {
+			restaurantList += fmt.Sprintf("\n %s -- %v", name, restaurant.Menu.Menus[0].Date)
+		}
 	}
 
-	content := m.txtStyle.Render(restaurantList)
-	return title + content
+	content2 := m.txtStyle.Render(restaurantList)
+
+	content := m.txtStyle.Render(campus)
+	return content + content2
 }
 
-func (m model) renderTerminalInfoView() string {
-	title := m.titleStyle.Render("view 3")
+func (m model) renderBottomNav() string {
+	bottomNav := m.quitStyle.Render("press 'q' to quit")
+	return bottomNav
+}
 
-	info := fmt.Sprintf(`
-		Terminal: %s
-		Window Size: %dx%d
-		Background: %s
-		Color Profile: %s`,
-		m.term, m.width, m.height, m.bg, m.profile)
+func (m model) renderSidebar() string {
+	var campusList []string
 
-	content := m.txtStyle.Render(info)
-	return title + content
+	for _, campus := range CAMPUSES {
+		sideBarItem := m.sidebarItemStyle.Render(campus)
+		campusList = append(campusList, sideBarItem)
+	}
+
+	sideBar := lipgloss.JoinVertical(lipgloss.Left, campusList...)
+	return sideBar
 }
