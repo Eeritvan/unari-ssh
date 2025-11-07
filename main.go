@@ -184,6 +184,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView >= totalViews {
 				m.currentView = 0
 			}
+		case "right", "l": // next day
+			fmt.Println("next day")
+		case "left", "h": // prev day
+			fmt.Println("prev day")
+		case "ctrl+f":
+			// TODO: implement find
+			fmt.Println("find")
 		}
 	}
 	return m, nil
@@ -234,10 +241,9 @@ func (m model) renderRestaurant(idx int) string {
 		}
 	}
 
-	content2 := m.txtStyle.Render(restaurantList)
+	content := m.txtStyle.Render(restaurantList)
 
-	content := m.txtStyle.Render(campus)
-	return content + content2
+	return content
 }
 
 func (m model) renderBottomNav() string {
