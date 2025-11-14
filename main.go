@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"slices"
+	"strings"
 	"syscall"
 	"time"
 
@@ -188,6 +189,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			fmt.Println("next day")
 		case "left", "h": // prev day
 			fmt.Println("prev day")
+		case "t", "T": // current date
+			fmt.Println(time.Now())
 		case "ctrl+f":
 			// TODO: implement find
 			fmt.Println("find")
@@ -237,7 +240,17 @@ func (m model) renderRestaurant(idx int) string {
 	for _, restaurant := range m.data {
 		name := restaurant.Title
 		if slices.Contains(campusRestaurants, name) {
-			restaurantList += fmt.Sprintf("\n %s -- %v", name, restaurant.Menu.Menus[0].Date)
+			for _, menu := range restaurant.Menu.Menus {
+				restaurantDate := strings.Split(menu.Date, " ")
+				currentDate := time.Now().Format("2.1.")
+				if restaurantDate[len(restaurantDate)-1] == currentDate {
+					var test2 []string
+					for _, test := range menu.Data {
+						test2 = append(test2, test.Name)
+					}
+					restaurantList += fmt.Sprintf("\n %s -- %v -- %v", name, restaurantDate[len(restaurantDate)-1], test2)
+				}
+			}
 		}
 	}
 
