@@ -89,9 +89,8 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	renderer := bubbletea.MakeRenderer(s)
 	txtStyle := renderer.NewStyle().Foreground(lipgloss.Color("10"))
 	sidebarStyle := renderer.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
 		Foreground(lipgloss.Color("#04B575")).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderRight(true).
 		Padding(1, 2).
 		Width(20)
 	sidebarItemStyle := renderer.NewStyle().
@@ -116,6 +115,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		TabWidth(4).
 		Foreground(lipgloss.Color("#3C3C3C"))
 	contentStyle := renderer.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
 		Padding(1, 2)
 	bg := "light"
 	if renderer.HasDarkBackground() {
