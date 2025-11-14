@@ -111,7 +111,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		Margin(1, 0).
 		Width(16).
 		Align(lipgloss.Center)
-	navStyle := renderer.NewStyle().
+	footerStyle := renderer.NewStyle().
 		Bold(true).
 		Italic(true).
 		TabWidth(4).
@@ -136,7 +136,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		sidebarStyle:             sidebarStyle,
 		sidebarItemStyle:         sidebarItemStyle,
 		sidebarSelectedItemStyle: sidebarSelectedItemStyle,
-		navStyle:                 navStyle,
+		footerStyle:              footerStyle,
 		contentStyle:             contentStyle,
 		currentView:              kumpulaView,
 		data:                     unicafeData,
@@ -153,7 +153,7 @@ type model struct {
 	bg                       string
 	currentView              int
 	txtStyle                 lipgloss.Style
-	navStyle                 lipgloss.Style
+	footerStyle              lipgloss.Style
 	sidebarStyle             lipgloss.Style
 	sidebarItemStyle         lipgloss.Style
 	sidebarSelectedItemStyle lipgloss.Style
@@ -238,9 +238,9 @@ func (m model) View() string {
 
 	mainView := lipgloss.JoinHorizontal(lipgloss.Top, sidebarContent, mainContent)
 
-	bottomNav := m.renderBottomNav()
+	footer := m.renderFooter()
 
-	return lipgloss.JoinVertical(lipgloss.Left, mainView, bottomNav)
+	return lipgloss.JoinVertical(lipgloss.Left, mainView, footer)
 }
 
 func (m model) renderRestaurant(idx int) string {
@@ -270,16 +270,16 @@ func (m model) renderRestaurant(idx int) string {
 	return m.txtStyle.Render(m.selectedDate.Format("Monday 2.1")) + content
 }
 
-func (m model) renderBottomNav() string {
-	left := m.navStyle.Render("q: quit")
-	right := m.navStyle.Render("↑/↓: campus\tt: today\t←/→: date")
+func (m model) renderFooter() string {
+	left := m.footerStyle.Render("q: quit")
+	right := m.footerStyle.Render("↑/↓: campus\tt: today\t←/→: date")
 
 	rightBox := lipgloss.NewStyle().
 		Width(m.width - lipgloss.Width(left)).
 		Align(lipgloss.Right).
 		Render(right)
 
-	return m.navStyle.Width(m.width).Render(left + rightBox)
+	return m.footerStyle.Width(m.width).Render(left + rightBox)
 }
 
 func (m model) renderSidebar() string {
