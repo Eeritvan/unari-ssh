@@ -24,6 +24,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type unicafeDataMsg []fetch.Unicafe
+
 var CAMPUSES = [...]string{"Keskusta", "Kumpula", "Meilahti", "Viikki"}
 var unicafeData []fetch.Unicafe
 
@@ -161,13 +163,14 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	m.selectedDate = time.Now()
-	var err error
-	unicafeData, err = fetch.GetUnicafe()
-	if err != nil {
-		log.Error("Failed to fetch Unicafe data", "error", err)
+	return func() tea.Msg {
+		data, err := fetch.GetUnicafe()
+		if err != nil {
+			// TODO: error handling
+			return unicafeDataMsg([]fetch.Unicafe{})
+		}
+		return unicafeDataMsg(data)
 	}
-	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -175,6 +178,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
+	case unicafeDataMsg:
+		m.data = msg
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
