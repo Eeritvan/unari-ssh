@@ -126,6 +126,8 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		bg = "dark"
 	}
 
+	currentDate := time.Now()
+
 	m := model{
 		term:                     pty.Term,
 		profile:                  renderer.ColorProfile().Name(),
@@ -141,6 +143,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		contentStyle:             contentStyle,
 		currentView:              kumpulaView,
 		data:                     unicafeData,
+		selectedDate:             currentDate,
 	}
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
@@ -160,6 +163,7 @@ type model struct {
 	sidebarSelectedItemStyle lipgloss.Style
 	contentStyle             lipgloss.Style
 	data                     []fetch.Unicafe
+	selectedDate             time.Time
 }
 
 func (m model) Init() tea.Cmd {
@@ -186,11 +190,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = 0
 			}
 		case "right", "l": // next day
-			fmt.Println("next day")
+			// TODO: check that unicafe has this date
+			m.selectedDate = m.selectedDate.AddDate(0, 0, 1)
 		case "left", "h": // prev day
-			fmt.Println("prev day")
+			// TODO: check that unicafe has this date
+			m.selectedDate = m.selectedDate.AddDate(0, 0, -1)
 		case "t", "T": // current date
-			fmt.Println(time.Now())
+			// fmt.Println(time.Now())
+			m.selectedDate = time.Now()
 		case "ctrl+f":
 			// TODO: implement find
 			fmt.Println("find")
@@ -236,13 +243,15 @@ func (m model) renderRestaurant(idx int) string {
 	campus := CAMPUSES[idx]
 	campusRestaurants := CAMPUS_RESTAURANTS[campus]
 
+	fmt.Println(m.selectedDate)
+
 	var restaurantList string
 	for _, restaurant := range m.data {
 		name := restaurant.Title
 		if slices.Contains(campusRestaurants, name) {
 			for _, menu := range restaurant.Menu.Menus {
 				restaurantDate := strings.Split(menu.Date, " ")
-				currentDate := time.Now().Format("2.1.")
+				currentDate := m.selectedDate.Format("2.1.")
 				if restaurantDate[len(restaurantDate)-1] == currentDate {
 					var test2 []string
 					for _, test := range menu.Data {
