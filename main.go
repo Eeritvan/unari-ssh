@@ -167,6 +167,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
+	m.selectedDate = time.Now()
 	return nil
 }
 
@@ -196,7 +197,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// TODO: check that unicafe has this date
 			m.selectedDate = m.selectedDate.AddDate(0, 0, -1)
 		case "t", "T": // current date
-			// fmt.Println(time.Now())
 			m.selectedDate = time.Now()
 		case "ctrl+f":
 			// TODO: implement find
@@ -257,7 +257,7 @@ func (m model) renderRestaurant(idx int) string {
 					for _, test := range menu.Data {
 						test2 = append(test2, test.Name)
 					}
-					restaurantList += fmt.Sprintf("\n %s -- %v -- %v", name, restaurantDate[len(restaurantDate)-1], test2)
+					restaurantList += fmt.Sprintf("\n %s -- %v", name, test2)
 				}
 			}
 		}
@@ -269,7 +269,7 @@ func (m model) renderRestaurant(idx int) string {
 }
 
 func (m model) renderBottomNav() string {
-	bottomNav := m.quitStyle.Render("press 'q' to quit")
+	bottomNav := m.quitStyle.Render("press 'q' to quit\t't/T' today\t", m.selectedDate.Format("2.1"))
 	return bottomNav
 }
 
