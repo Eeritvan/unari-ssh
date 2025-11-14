@@ -51,11 +51,6 @@ func main() {
 	host := os.Getenv("HOST")
 	port := os.Getenv("PORT")
 
-	unicafeData, err = fetch.GetUnicafe()
-	if err != nil {
-		log.Error("Failed to fetch Unicafe data", "error", err)
-	}
-
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath(".ssh/id_ed25519"),
@@ -168,6 +163,11 @@ type model struct {
 
 func (m model) Init() tea.Cmd {
 	m.selectedDate = time.Now()
+	var err error
+	unicafeData, err = fetch.GetUnicafe()
+	if err != nil {
+		log.Error("Failed to fetch Unicafe data", "error", err)
+	}
 	return nil
 }
 
