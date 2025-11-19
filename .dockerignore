@@ -1,0 +1,9 @@
+.gitignore
+.dockerignore
+.ssh
+.env
+.air.toml
+tmp
+Dockerfile
+Justfile
+tools.go
