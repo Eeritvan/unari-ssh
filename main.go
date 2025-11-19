@@ -145,6 +145,8 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
 
+// TODO: loading state
+// TODO: error state
 type model struct {
 	term                     string
 	profile                  string
@@ -243,6 +245,8 @@ func (m model) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, mainView, footer)
 }
 
+// TODO: scrollable view
+// TODO: mouse clicks
 func (m model) renderRestaurant(idx int) string {
 	campus := CAMPUSES[idx]
 	campusRestaurants := CAMPUS_RESTAURANTS[campus]
@@ -270,6 +274,7 @@ func (m model) renderRestaurant(idx int) string {
 	return m.txtStyle.Render(m.selectedDate.Format("Monday 2.1")) + content
 }
 
+// TODO: a: about?
 func (m model) renderFooter() string {
 	left := m.footerStyle.Render("q: quit")
 	right := m.footerStyle.Render("↑/↓: campus\tt: today\t←/→: date")
