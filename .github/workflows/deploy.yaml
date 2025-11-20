@@ -1,35 +1,35 @@
 name: deploy
 
 on:
-    push:
-        branches:
-            - main
+  push:
+    branches:
+      - main
 
 jobs:
-    build-and-deploy:
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@v4
-            - name: Login to GitHub Container Registry
-              uses: docker/login-action@v3
-              with:
-                  registry: ghcr.io
-                  username: ${{ github.actor }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
-            - name: Setup buildx
-              uses: docker/setup-buildx-action@v3
-            - name: Build image
-              uses: docker/build-push-action@v6
-              with:
-                  push: true
-                  tags: |
-                      ghcr.io/eeritvan/unari-ssh:${{ github.sha }}
-                      ghcr.io/eeritvan/unari-ssh:latest
-                  cache-from: type=registry,ref=ghcr.io/eeritvan/unari-ssh:buildcache
-                  cache-to: type=registry,ref=ghcr.io/eeritvan/unari-ssh:buildcache,mode=max
-                  outputs: type=docker,dest=${{ runner.temp }}/unari-ssh.tar
-            - name: Upload image artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: unari-ssh
-                  path: ${{ runner.temp }}/unari-ssh.tar
+  build-and-deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: |
+            ghcr.io/eeritvan/unari-ssh:${{ github.sha }}
+            ghcr.io/eeritvan/unari-ssh:latest
+          cache-from: type=registry,ref=ghcr.io/eeritvan/unari-ssh:buildcache
+          cache-to: type=registry,ref=ghcr.io/eeritvan/unari-ssh:buildcache,mode=max
+          outputs: type=docker,dest=${{ runner.temp }}/unari-ssh.tar
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unari-ssh
+          path: ${{ runner.temp }}/unari-ssh.tar
