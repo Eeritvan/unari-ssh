@@ -5,10 +5,7 @@ COPY . .
 
 RUN adduser -D -H -g '' -u 10001 nonroot
 
-RUN apk add --no-cache ca-certificates openssh-keygen && \
-    mkdir -p /build/.ssh && \
-    ssh-keygen -t ed25519 -f /build/.ssh/id_ed25519 -N "" && \
-    chown -R nonroot:nonroot /build/.ssh
+RUN apk add --no-cache ca-certificates openssh-keygen
 
 RUN go mod download && \
     go mod verify && \
@@ -20,7 +17,6 @@ FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /build/unari-ssh /unari-ssh
-COPY --from=build /build/.ssh /.ssh
 
 USER nonroot
 
