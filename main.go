@@ -126,7 +126,12 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		bg = "dark"
 	}
 
-	currentDate := time.Now()
+	finland, err := time.LoadLocation("Europe/Helsinki")
+	if err != nil {
+		// TODO: better error message
+		fmt.Println(err)
+	}
+	currentDate := time.Now().In(finland)
 
 	m := model{
 		term:                     pty.Term,
@@ -205,7 +210,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// TODO: check that unicafe has this date
 			m.selectedDate = m.selectedDate.AddDate(0, 0, -1)
 		case "t", "T": // current date
-			m.selectedDate = time.Now()
+			finland, err := time.LoadLocation("Europe/Helsinki")
+			if err != nil {
+				// TODO: better error message
+				fmt.Println(err)
+			}
+			m.selectedDate = time.Now().In(finland)
 		case "ctrl+f":
 			// TODO: implement find
 			fmt.Println("find")

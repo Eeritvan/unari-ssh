@@ -5,7 +5,8 @@ COPY . .
 
 RUN adduser -D -H -g '' -u 10001 nonroot
 
-RUN apk add --no-cache ca-certificates openssh-keygen
+RUN apk add --no-cache ca-certificates openssh-keygen && \
+    apk add tzdata
 
 RUN go mod download && \
     go mod verify && \
@@ -17,6 +18,7 @@ FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /build/unari-ssh /unari-ssh
+COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
 
 USER nonroot
 

@@ -43,6 +43,4 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:cicd
       - name: Push webhook
-        run: |
-          curl -sS --fail -X POST \
-            "${{ secrets.WEBHOOK_URL }}"
+        run: curl -sS --fail -X POST "${{ secrets.WEBHOOK_URL }}"
