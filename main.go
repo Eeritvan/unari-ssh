@@ -124,7 +124,6 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		TabWidth(4).
 		Foreground(lipgloss.Color("#3C3C3C"))
 	contentStyle := renderer.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
 		Padding(1, 2)
 	bg := "light"
 	if renderer.HasDarkBackground() {
@@ -248,26 +247,11 @@ func (m model) View() string {
 		return m.renderTermTooSmall()
 	}
 
-	var content string
-	content = m.renderRestaurant(m.currentView)
-
-	sideBar := m.renderSidebar()
-
-	mainHeight := max(0, m.height-3)
-	// contentWidth := max(0, m.width-sidebarWidth)
-
-	sidebarStyleWithHeight := m.sidebarStyle.Height(mainHeight)
-	contentStyleWithConstraints := m.contentStyle.
-		Width(m.width - 24).
-		Height(mainHeight).
-		MaxHeight(mainHeight + 1)
-
-	sidebarContent := sidebarStyleWithHeight.Render(sideBar)
-	mainContent := contentStyleWithConstraints.Render(content)
-
-	mainView := lipgloss.JoinHorizontal(lipgloss.Top, sidebarContent, mainContent)
-
+	sidebar := m.renderSidebar()
+	restaurantView := m.renderRestaurant(m.currentView)
 	footer := m.renderFooter()
+
+	mainView := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, restaurantView)
 
 	return zone.Scan(lipgloss.JoinVertical(lipgloss.Left, mainView, footer))
 }
@@ -290,22 +274,28 @@ func (m model) renderRestaurant(idx int) string {
 					found = true
 					var menuItems []string
 					for _, meal := range menu.Data {
-						menuItems = append(menuItems, meal.Name)
+						menuItems = append(menuItems, " • "+strings.Trim(meal.Name, " "))
 					}
 
 					restaurantList.WriteString(fmt.Sprintf("\n\n%s\n%s",
 						lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render(restaurant.Title),
-						strings.Join(menuItems, "\n • ")))
+						strings.Join(menuItems, "\n")))
 				}
 			}
 		}
 	}
 
 	if !found {
-		restaurantList.WriteString("\n\nNo menu data available for this date.")
+		restaurantList.WriteString("\n\nNo data for this date.")
 	}
 
-	return restaurantList.String()
+	return m.contentStyle.
+		Padding(1, 2).
+		BorderStyle(lipgloss.RoundedBorder()).
+		Width(m.width - 26).
+		Height(m.height - 3).
+		MaxHeight(m.height - 1).
+		Render(restaurantList.String())
 }
 
 // TODO: a: about?
@@ -315,7 +305,7 @@ func (m model) renderFooter() string {
 
 	leftView := m.footerStyle.Render(left)
 
-	infoWidth := max(0, m.width-lipgloss.Width(leftView))
+	infoWidth := m.width - lipgloss.Width(leftView)
 
 	rightView := m.footerStyle.
 		Width(infoWidth).
@@ -342,7 +332,14 @@ func (m model) renderSidebar() string {
 		campusList = append(campusList, sideBarItem)
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Center, campusList...)
+	sidebarList := lipgloss.JoinVertical(lipgloss.Center, campusList...)
+
+	sidebarStyleWithHeight := m.sidebarStyle.
+		Width(22).
+		Height(m.height - 3).
+		MaxHeight(m.height - 1)
+
+	return sidebarStyleWithHeight.Render(sidebarList)
 }
 
 func (m model) renderTermTooSmall() string {
@@ -361,11 +358,4 @@ func (m model) renderLoading() string {
 		Align(lipgloss.Center, lipgloss.Center).
 		Bold(true).
 		Render("Loading")
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
