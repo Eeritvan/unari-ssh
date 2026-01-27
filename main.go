@@ -227,32 +227,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	var content string
-
-	switch m.currentView {
-	case keskustaView:
-		content = m.renderRestaurant(m.currentView)
-	case kumpulaView:
-		content = m.renderRestaurant(m.currentView)
-	case meilahtiView:
-		content = m.renderRestaurant(m.currentView)
-	case töölöView:
-		content = m.renderRestaurant(m.currentView)
-	case viikkiView:
-		content = m.renderRestaurant(m.currentView)
+	if m.width < 40 || m.height < 10 {
+		return m.renderTermTooSmall()
 	}
+
+	var content string
+	content = m.renderRestaurant(m.currentView)
 
 	sideBar := m.renderSidebar()
 
-	mainHeight := m.height - 3
+	mainHeight := max(0, m.height-3)
+	// contentWidth := max(0, m.width-sidebarWidth)
 
 	sidebarStyleWithHeight := m.sidebarStyle.Height(mainHeight)
-	contentStyleWithHeight := m.contentStyle.
+	contentStyleWithConstraints := m.contentStyle.
 		Width(m.width - 24).
-		Height(mainHeight)
+		Height(mainHeight).
+		MaxHeight(mainHeight + 1)
 
 	sidebarContent := sidebarStyleWithHeight.Render(sideBar)
-	mainContent := contentStyleWithHeight.Render(content)
+	mainContent := contentStyleWithConstraints.Render(content)
 
 	mainView := lipgloss.JoinHorizontal(lipgloss.Top, sidebarContent, mainContent)
 
@@ -267,27 +261,36 @@ func (m model) renderRestaurant(idx int) string {
 	campus := LOCATIONS[idx]
 	campusRestaurants := LOCATION_RESTAURANTS[campus]
 
-	var restaurantList string
+	var restaurantList strings.Builder
+	restaurantList.WriteString(m.txtStyle.Bold(true).Underline(true).Render(m.selectedDate.Format("Monday 02.01.2006")))
+	restaurantList.WriteString("\n")
+
+	found := false
 	for _, restaurant := range m.data {
-		name := restaurant.Title
-		if slices.Contains(campusRestaurants, name) {
+		if slices.Contains(campusRestaurants, restaurant.Title) {
 			for _, menu := range restaurant.Menu.Menus {
 				restaurantDate := strings.Split(menu.Date, " ")
 				currentDate := m.selectedDate.Format("02.01.")
 				if restaurantDate[len(restaurantDate)-1] == currentDate {
-					var menuItem []string
+					found = true
+					var menuItems []string
 					for _, meal := range menu.Data {
-						menuItem = append(menuItem, meal.Name)
+						menuItems = append(menuItems, meal.Name)
 					}
-					restaurantList += fmt.Sprintf("\n %s -- %v", name, menuItem)
+
+					restaurantList.WriteString(fmt.Sprintf("\n\n%s\n%s",
+						lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render(restaurant.Title),
+						strings.Join(menuItems, "\n • ")))
 				}
 			}
 		}
 	}
 
-	content := m.txtStyle.Render(restaurantList)
+	if !found {
+		restaurantList.WriteString("\n\nNo menu data available for this date.")
+	}
 
-	return m.txtStyle.Render(m.selectedDate.Format("Monday 2.1")) + content
+	return restaurantList.String()
 }
 
 // TODO: a: about?
@@ -295,12 +298,16 @@ func (m model) renderFooter() string {
 	left := m.footerStyle.Render("q: quit")
 	right := m.footerStyle.Render("↑/↓: campus\tt: today\t←/→: date")
 
-	rightBox := lipgloss.NewStyle().
-		Width(m.width - lipgloss.Width(left)).
+	leftView := m.footerStyle.Render(left)
+
+	infoWidth := max(0, m.width-lipgloss.Width(leftView))
+
+	rightView := m.footerStyle.
+		Width(infoWidth).
 		Align(lipgloss.Right).
 		Render(right)
 
-	return m.footerStyle.Width(m.width).Render(left + rightBox)
+	return lipgloss.JoinHorizontal(lipgloss.Bottom, leftView, rightView)
 }
 
 func (m model) renderSidebar() string {
@@ -317,6 +324,20 @@ func (m model) renderSidebar() string {
 		campusList = append(campusList, sideBarItem)
 	}
 
-	sideBar := lipgloss.JoinVertical(lipgloss.Center, campusList...)
-	return sideBar
+	return lipgloss.JoinVertical(lipgloss.Center, campusList...)
+}
+
+func (m model) renderTermTooSmall() string {
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render("Terminal too small")
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
