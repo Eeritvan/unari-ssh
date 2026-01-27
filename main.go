@@ -123,8 +123,6 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		Italic(true).
 		TabWidth(4).
 		Foreground(lipgloss.Color("#3C3C3C"))
-	contentStyle := renderer.NewStyle().
-		Padding(1, 2)
 	bg := "light"
 	if renderer.HasDarkBackground() {
 		bg = "dark"
@@ -148,7 +146,6 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		sidebarItemStyle:         sidebarItemStyle,
 		sidebarSelectedItemStyle: sidebarSelectedItemStyle,
 		footerStyle:              footerStyle,
-		contentStyle:             contentStyle,
 		currentView:              kumpulaView,
 		data:                     unicafeData,
 		selectedDate:             currentDate,
