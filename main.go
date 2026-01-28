@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"slices"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -270,8 +271,47 @@ func (m model) renderRestaurant(idx int) string {
 				if restaurantDate[len(restaurantDate)-1] == currentDate {
 					found = true
 					var menuItems []string
+
+					rank := func(name string) int {
+						n := strings.ToLower(strings.TrimSpace(name))
+						switch n {
+						case "lounas":
+							return 0
+						case "vegaanilounas":
+							return 1
+						case "lisäke":
+							return 2
+						case "jälkiruoka":
+							return 3
+						default:
+							return 100
+						}
+					}
+
+					sort.SliceStable(menu.Data, func(i, j int) bool {
+						ri := rank(menu.Data[i].Price.Name)
+						rj := rank(menu.Data[j].Price.Name)
+						if ri != rj {
+							return ri < rj
+						}
+						return strings.ToLower(strings.TrimSpace(menu.Data[i].Name)) < strings.ToLower(strings.TrimSpace(menu.Data[j].Name))
+					})
+
 					for _, meal := range menu.Data {
-						menuItems = append(menuItems, " • "+strings.Trim(meal.Name, " "))
+						var mealType string
+						switch meal.Price.Name {
+						case "Lounas":
+							mealType = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffcd73")).Render(meal.Price.Name + " ")
+						case "Lisäke":
+							mealType = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffcd73")).Render(meal.Price.Name + " ")
+						case "Buffet":
+							mealType = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffcd73")).Render(meal.Price.Name + " ")
+						case "Vegaanilounas":
+							mealType = lipgloss.NewStyle().Foreground(lipgloss.Color("#ebffa3")).Render("Veg ")
+						case "Jälkiruoka":
+							mealType = lipgloss.NewStyle().Foreground(lipgloss.Color("#eaa3ff")).Render(meal.Price.Name + " ")
+						}
+						menuItems = append(menuItems, " • "+mealType+strings.Trim(meal.Name, " "))
 					}
 
 					restaurantList.WriteString(fmt.Sprintf("\n\n%s\n%s",
